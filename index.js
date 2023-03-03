@@ -40,6 +40,8 @@ function verifyJWT(req, res, next) {
 async function run() {
   try {
     const usersCollection = client.db("mobile-resale-market").collection("users");
+    const categoriesCollection = client.db("mobile-resale-market").collection("categories");
+    const productsCollection = client.db("mobile-resale-market").collection("products");
     // NOTE: make sure you use verifyAdmin after verifyJWT
 
     // const verifyAdmin = async (req, res, next) => {
@@ -82,6 +84,32 @@ async function run() {
       console.log(user);
       const result = await usersCollection.insertOne(user);
       res.send(result);
+    });
+
+    //Category Api
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const categories = await categoriesCollection.find(query).toArray();
+      res.send(categories);
+    });
+
+    //products api
+    app.post("/products", async (req, res) => {
+      const query = req.body;
+      const options = await productsCollection.insertOne(query);
+      res.send(options);
+    });
+
+    app.get("/products", async (req, res) => {
+      let query = {};
+      // if (req.query.category_name) {
+      //   query = {
+      //     category_name: req.query.category_name,
+      //   };
+      // }
+
+      const options = await productsCollection.find(query).toArray();
+      res.send(options);
     });
   } finally {
   }
