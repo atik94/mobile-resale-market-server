@@ -120,6 +120,13 @@ async function run() {
       console.log(sellers);
       res.send(sellers);
     });
+    //Users Delete Api
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
 
     app.patch("/sellers/:id", async (req, res) => {
       const id = req.params.id;
@@ -162,6 +169,13 @@ async function run() {
           category_name: req.query.category_name,
         };
       }
+
+      app.delete("/products/:id", async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const result = await productsCollection.deleteOne(filter);
+        res.send(result);
+      });
 
       const options = await productsCollection.find(query).toArray();
       res.send(options);
