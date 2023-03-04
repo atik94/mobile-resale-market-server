@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -42,6 +42,7 @@ async function run() {
     const usersCollection = client.db("mobile-resale-market").collection("users");
     const categoriesCollection = client.db("mobile-resale-market").collection("categories");
     const productsCollection = client.db("mobile-resale-market").collection("products");
+    const bookingCollection = client.db("mobile-resale-market").collection("bookings");
     // NOTE: make sure you use verifyAdmin after verifyJWT
 
     // const verifyAdmin = async (req, res, next) => {
@@ -66,12 +67,21 @@ async function run() {
       res.status(403).send({ accessToken: "" });
     });
 
+    //Users Create Api
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    //All Users Api
     app.get("/users", async (req, res) => {
       const query = {};
       const users = await usersCollection.find(query).toArray();
       res.send(users);
     });
-
+    //Admin Role Api
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -79,10 +89,48 @@ async function run() {
       res.send({ isAdmin: user?.role === "admin" });
     });
 
-    app.post("/users", async (req, res) => {
-      const user = req.body;
-      console.log(user);
-      const result = await usersCollection.insertOne(user);
+    //Sellers Role Api
+    app.get("/users/sellers/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isSeller: user?.role === "sellers" });
+    });
+
+    //Buyers Role Api
+    app.get("/users/buyers/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isBuyer: user?.role === "buyers" });
+    });
+
+    // All Buyers api
+    app.get("/buyers", async (req, res) => {
+      const query = { role: "buyers" };
+      const buyers = await usersCollection.find(query).toArray();
+      console.log(buyers);
+      res.send(buyers);
+    });
+
+    // All Sellers api
+    app.get("/sellers", async (req, res) => {
+      const query = { role: "sellers" };
+      const sellers = await usersCollection.find(query).toArray();
+      console.log(sellers);
+      res.send(sellers);
+    });
+
+    app.patch("/sellers/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.body.status;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await usersCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
 
@@ -91,6 +139,13 @@ async function run() {
       const query = {};
       const categories = await categoriesCollection.find(query).toArray();
       res.send(categories);
+    });
+
+    app.get("/categories/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = await categoriesCollection.findOne(query);
+      res.send(options);
     });
 
     //products api
@@ -102,14 +157,35 @@ async function run() {
 
     app.get("/products", async (req, res) => {
       let query = {};
-      // if (req.query.category_name) {
-      //   query = {
-      //     category_name: req.query.category_name,
-      //   };
-      // }
+      if (req.query.category_name) {
+        query = {
+          category_name: req.query.category_name,
+        };
+      }
 
       const options = await productsCollection.find(query).toArray();
       res.send(options);
+    });
+
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = await productsCollection.findOne(query);
+      res.send(options);
+    });
+
+    // Booking api
+    app.get("/bookings", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const bookings = await bookingCollection.find(query).toArray();
+      res.send(bookings);
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
+      res.send(result);
     });
   } finally {
   }
