@@ -45,18 +45,42 @@ async function run() {
     const productsCollection = client.db("mobile-resale-market").collection("products");
     const bookingCollection = client.db("mobile-resale-market").collection("bookings");
     const paymentsCollection = client.db("mobile-resale-market").collection("payments");
+
     // NOTE: make sure you use verifyAdmin after verifyJWT
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
 
-    // const verifyAdmin = async (req, res, next) => {
-    //   const decodedEmail = req.decoded.email;
-    //   const query = { email: decodedEmail };
-    //   const user = await usersCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
-    //   if (user?.role !== "admin") {
-    //     return res.status(403).send({ message: "forbidden access" });
-    //   }
-    //   next();
-    // };
+    // NOTE: make sure you use verifyBuyer after verifyJWT
+    const verifyBuyer = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.role !== "buyers") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
+    // NOTE: make sure you use verifySeller after verifyJWT
+    const verifySeller = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.role !== "sellers") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
@@ -108,7 +132,7 @@ async function run() {
     });
 
     // All Buyers api
-    app.get("/buyers", async (req, res) => {
+    app.get("/buyers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "buyers" };
       const buyers = await usersCollection.find(query).toArray();
       console.log(buyers);
@@ -116,12 +140,13 @@ async function run() {
     });
 
     // All Sellers api
-    app.get("/sellers", async (req, res) => {
+    app.get("/sellers", verifyJWT, verifyAdmin, async (req, res) => {
       const query = { role: "sellers" };
       const sellers = await usersCollection.find(query).toArray();
       console.log(sellers);
       res.send(sellers);
     });
+
     //Users Delete Api
     app.delete("/users/:id", async (req, res) => {
       const id = req.params.id;
@@ -158,7 +183,7 @@ async function run() {
     });
 
     //products api
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyJWT, verifySeller, async (req, res) => {
       const query = req.body;
       const options = await productsCollection.insertOne(query);
       res.send(options);
@@ -191,7 +216,7 @@ async function run() {
     });
 
     // Booking api
-    app.get("/bookings", verifyJWT, async (req, res) => {
+    app.get("/bookings", verifyJWT, verifyBuyer, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const bookings = await bookingCollection.find(query).toArray();
