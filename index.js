@@ -93,10 +93,26 @@ async function run() {
       res.status(403).send({ accessToken: "" });
     });
 
-    //Users Create Api
+    //Save Users only Email and Password based authentication
+
+    // app.post("/users", async (req, res) => {
+    //   const user = req.body;
+    //   console.log(user);
+    //   const result = await usersCollection.insertOne(user);
+    //   res.send(result);
+    // });
+
+    // Save Users Both EmailPassword and GoogleSignIn based authentication.
     app.post("/users", async (req, res) => {
       const user = req.body;
-      console.log(user);
+      const query = {
+        email: user.email,
+      };
+      const alreadyHasEmail = await usersCollection.find(query).toArray();
+      if (alreadyHasEmail.length) {
+        const message = "You already have an email";
+        return res.send({ acknowledged: false, message });
+      }
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
